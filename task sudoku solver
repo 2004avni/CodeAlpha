@@ -1,0 +1,136 @@
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <iostream>
+
+using namespace std;
+
+const int SIZE = 9;
+const int CELL_SIZE = 60;
+const int GRID_SIZE = SIZE * CELL_SIZE;
+
+const int UNASSIGNED = 0;
+vector<vector<int>> grid(SIZE, vector<int>(SIZE, UNASSIGNED));
+
+// Function to print the Sudoku grid
+void printGrid(const vector<vector<int>>& grid) {
+    for (int row = 0; row < SIZE; ++row) {
+        for (int col = 0; col < SIZE; ++col) {
+            cout << grid[row][col] << " ";
+        }
+        cout << endl;
+    }
+}
+
+// Check if it's safe to place num in grid[row][col]
+bool isSafe(const vector<vector<int>>& grid, int row, int col, int num) {
+    for (int x = 0; x < SIZE; ++x) {
+        if (grid[row][x] == num || grid[x][col] == num) {
+            return false;
+        }
+    }
+
+    int startRow = row - row % 3;
+    int startCol = col - col % 3;
+    for (int r = 0; r < 3; ++r) {
+        for (int d = 0; d < 3; ++d) {
+            if (grid[r + startRow][d + startCol] == num) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// Solve the Sudoku using backtracking
+bool solveSudoku(vector<vector<int>>& grid) {
+    for (int row = 0; row < SIZE; ++row) {
+        for (int col = 0; col < SIZE; ++col) {
+            if (grid[row][col] == UNASSIGNED) {
+                for (int num = 1; num <= SIZE; ++num) {
+                    if (isSafe(grid, row, col, num)) {
+                        grid[row][col] = num;
+                        if (solveSudoku(grid)) {
+                            return true;
+                        }
+                        grid[row][col] = UNASSIGNED; // backtrack
+                    }
+                }
+                return false; // if no number can be placed, return false
+            }
+        }
+    }
+    return true; // if all cells are filled
+}
+
+// Draw the Sudoku grid
+void drawGrid(sf::RenderWindow& window) {
+    sf::Font font;
+    if (!font.loadFromFile("arial.ttf")) {
+        cerr << "Error loading font" << endl;
+        return;
+    }
+
+    sf::RectangleShape cell(sf::Vector2f(CELL_SIZE, CELL_SIZE));
+    cell.setFillColor(sf::Color::White);
+    cell.setOutlineThickness(1);
+    cell.setOutlineColor(sf::Color::Black);
+
+    for (int row = 0; row < SIZE; ++row) {
+        for (int col = 0; col < SIZE; ++col) {
+            cell.setPosition(col * CELL_SIZE, row * CELL_SIZE);
+            window.draw(cell);
+
+            if (grid[row][col] != UNASSIGNED) {
+                sf::Text text;
+                text.setFont(font);
+                text.setString(std::to_string(grid[row][col]));
+                text.setCharacterSize(24);
+                text.setFillColor(sf::Color::Black);
+                text.setPosition(col * CELL_SIZE + CELL_SIZE / 4, row * CELL_SIZE + CELL_SIZE / 4);
+                window.draw(text);
+            }
+        }
+    }
+}
+
+// Main function
+int main() {
+    sf::RenderWindow window(sf::VideoMode(GRID_SIZE, GRID_SIZE), "Sudoku Solver");
+
+    // Example Sudoku puzzle
+    grid = {
+        {5, 3, UNASSIGNED, UNASSIGNED, 7, UNASSIGNED, UNASSIGNED, UNASSIGNED, UNASSIGNED},
+        {6, UNASSIGNED, UNASSIGNED, 1, 9, 5, UNASSIGNED, UNASSIGNED, UNASSIGNED},
+        {UNASSIGNED, 9, 8, UNASSIGNED, UNASSIGNED, UNASSIGNED, UNASSIGNED, 6, UNASSIGNED},
+        {8, UNASSIGNED, UNASSIGNED, UNASSIGNED, 6, UNASSIGNED, UNASSIGNED, UNASSIGNED, 3},
+        {4, UNASSIGNED, UNASSIGNED, 8, UNASSIGNED, 3, UNASSIGNED, UNASSIGNED, 1},
+        {7, UNASSIGNED, UNASSIGNED, UNASSIGNED, 2, UNASSIGNED, UNASSIGNED, UNASSIGNED, 6},
+        {UNASSIGNED, 6, UNASSIGNED, UNASSIGNED, UNASSIGNED, UNASSIGNED, 2, 8, UNASSIGNED},
+        {UNASSIGNED, UNASSIGNED, UNASSIGNED, 4, 1, 9, UNASSIGNED, UNASSIGNED, 5},
+        {UNASSIGNED, UNASSIGNED, UNASSIGNED, UNASSIGNED, 8, UNASSIGNED, UNASSIGNED, 7, 9}
+    };
+
+    // Solve Sudoku puzzle
+    if (solveSudoku(grid)) {
+        cout << "Sudoku solved successfully!" << endl;
+        printGrid(grid);
+    } else {
+        cout << "No solution exists!" << endl;
+    }
+
+    // Main loop
+    while (window.isOpen()) {
+        sf::Event event;
+        while (window.pollEvent(event)) {
+            if (event.type == sf::Event::Closed) {
+                window.close();
+            }
+        }
+
+        window.clear(sf::Color::White);
+        drawGrid(window);
+        window.display();
+    }
+
+    return 0;
+}
